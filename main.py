@@ -40,12 +40,10 @@ def main(args):
     ## Generate Data 
     file_name = args.file_name
     observe_x, V, W, phie, elecpos = dynamics.generate_data(file_name, args.dim)  
-    print(f'original data v: {V.shape}')
     
     ## Split data to train and test
     #observe_train, observe_test, v_train, v_test, w_train, w_test = train_test_split(observe_x,V,W,test_size=test_size)
     observe_train, observe_test, v_train, v_test, w_train, w_test = train_test_split(observe_x,V,W,test_size=test_size)
-    print(f'v_train shape: {v_train.shape}')
 
     ## Add noise to training data if needed
     if args.noise:
