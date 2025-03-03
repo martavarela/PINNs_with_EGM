@@ -157,7 +157,7 @@ class PINN():
             du = 4 * D_array * laplace(v_t, mode='nearest') + (Dx * gx) + (Dy * gy)
 
             for k in range(np.shape(self.dynamics.elecpos)[1]):
-                matx, maty = np.meshgrid((np.arange(2, X) - self.dynamics.elecpos[0][k]), (np.arange(2, Y) - elecpos[1][k]))
+                matx, maty = np.meshgrid((np.arange(2, X) - self.dynamics.elecpos[0][k]), (np.arange(2, Y) - self.dynamics.elecpos[1][k]))
 
                 distance = np.sqrt(matx**2 + maty**2).T
                 sum = np.trapezoid(np.trapezoid(du[1:-1,1:-1]/distance,axis=0),axis=0)

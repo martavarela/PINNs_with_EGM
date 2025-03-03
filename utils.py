@@ -271,8 +271,8 @@ class system_dynamics():
         return phie_pred
 
     def simple_integrate(self,v_pred):
-        tend = v_pred.numel()//(10*10)
-        v_pred = v_pred[:(tend*10*10)].view(tend, self.max_x, self.max_y)
+        tend = v_pred.numel()//(self.max_x*self.max_y)
+        v_pred = v_pred[:(tend*self.max_x*self.max_y)].view(tend, self.max_x, self.max_y)
 
         #phie_pred = -(np.trapezoid(np.trapezoid(v_pred/self.spacing,axis=0),axis=0))
         phie_pred = torch.trapz(torch.trapz(v_pred,dx=self.spacing,dim=0),dx=self.spacing,dim=1)
