@@ -29,7 +29,7 @@ class PINN():
         self.num_test = 1000 # number of testing points within the domain
         self.MAX_MODEL_INIT = 16 # maximum number of times allowed to initialize the model
         self.MAX_LOSS = 5 # upper limit to the initialized loss
-        self.epochs_init = 1 #15000 # number of epochs for training initial phase
+        self.epochs_init = 15 #15000 # number of epochs for training initial phase
         self.epochs_main = 10 #1000 # number of epochs for main training phase
         self.lr = 0.0005 # learning rate
         
@@ -44,7 +44,7 @@ class PINN():
             self.hidden_layer_size = 60
             self.num_domain = 40000
             self.num_boundary = 4000
-            self.epochs_main = 1 #150000
+            self.epochs_main = 50 #150000
         if self.heter:
             self.output = 3
         if self.inverse:

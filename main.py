@@ -38,7 +38,7 @@ def main(args):
     phie_preds = []
 
     # random seed setting
-    seed = [42,19,3407]
+    seed = [1234,19,3407]
     for i in range(len(seed)):
         dde.config.set_random_seed(seed[i])
 
@@ -89,8 +89,8 @@ def main(args):
         print("CUDA available:",torch.cuda.is_available())
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print("Training using device:",device)
-        #model, losshistory, train_state = model_pinn.train(out_path, params)
-        #dde.utils.external.plot_loss_history(losshistory,'loss_hist_plot.png')
+        model, losshistory, train_state = model_pinn.train(out_path, params)
+        dde.utils.external.plot_loss_history(losshistory,f'third_loss_hist_plot_{seed[i]}.png')
         model = model_pinn.model
 
         ## Compute rMSE
