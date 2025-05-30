@@ -1,22 +1,22 @@
-function phie = calcphie(param,Vsav)
+function phie=calcphie(param,Vsav,filePath)
 disp('Calculating phie...')
 sz = size(Vsav);
 tmax = sz(3);
-tini = 2;
+tini = 1;
 X = sz(1);
 Y = sz(2);
+
 D = param.D;
 if isscalar(param.D)
     D = param.D*ones(X,Y);
 elseif size(param.D,1) == sz(1)+2&&size(D,2)==sz(2)+2
-    D = param.D(2:end-1,1);
+    D = param.D(2:end-1,2:end-1);
 end
 h = param.h;
 [Dx,Dy]=gradient(D,h);
 
-elecpos = param.elecpos;
+elecpos = round(param.elecpos)+0.1;
 [xel,yel] = meshgrid(elecpos);
-
 K=1; % phie scalar constant
 
 tt=0;
@@ -27,18 +27,23 @@ for t=tini:tmax
 
     [gx,gy] = gradient(V,h);
     du = 4.*D*del2(V,h)+(Dx.*gx)+(Dy.*gy);
-    
+   
     % calculate phie
     for k=1:length(param.elecpos)
-        [matx,maty] = meshgrid((2:X-1)-xel(k),(2:Y-1)-yel(k));
+        [matx,maty] = meshgrid((2:X-1)-xel(k),(2:Y-1)-elecpos(k));
         % euclidian distance
         distance = sqrt(matx.^2+maty.^2);
+        mask_radius = 5;
+        valid_mask = (distance <= mask_radius) & (distance > 0); % Exclude electrode point
+        distance(~valid_mask) = inf;
+
         sum1 = sum((du(2:X-1,2:Y-1)'./distance));
         phie(k,tt) = -sum(sum1);
     end
 
+
     % display
-    rows_per_column = 6;
+    rows_per_column = sqrt(param.numelec);
     for j = 1:length(param.elecpos)
         row = mod(j-1, rows_per_column) + 1;  % Row index (1 to rows_per_column)
         col = ceil(j / rows_per_column);
@@ -52,4 +57,7 @@ for t=tini:tmax
         title(['Electrode at ', num2str(j),' (',num2str(round(param.elecpos(1,j))),',',num2str(round(param.elecpos(2,j))),')'])
     end
 end
+
+elecpos = param.elecpos;
+save(filePath,'phie','elecpos','-append')
 end
