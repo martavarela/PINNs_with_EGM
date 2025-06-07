@@ -2,12 +2,12 @@ function param = set_AP_parameter(cross,heter)
 % mode : 0 for plane wave, 1 for cross-stimulation (spiral)
 clc;
 close all;
-param.ncells  = 50;
+param.ncells  = 25;
 param.X = param.ncells+2;
 param.Y = param.ncells+2;
 param.h = 0.1;
 
-param.dt = 0.01;
+param.dt = 0.005;
 param.gathert = round(1/param.dt);
 param.displayt = round(1/param.dt);
 param.savet = 100*param.dt;
@@ -47,7 +47,7 @@ param.stimdur = 5;
 if cross
     param.crossgeo = false((param.ncells) + 2,(param.ncells) + 2);
     param.crossgeo(:,1:floor(param.X/3))=true;
-    param.crosstime = 42;
+    param.crosstime = 30;
 end
 
 

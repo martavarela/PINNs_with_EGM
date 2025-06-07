@@ -5,9 +5,10 @@ function [Vsav,fullPath]=AlievPanfilov2D(param)
 % t is the time in AU - to scale do tms = t *12.9
 
 disp('Simulating...')
+disp(size(param.D))
 function dydt = AlPan(y,Istim)
     % Aliev-Panfilov model parameters 
-    a = 0.05;
+    a = 0.01;
     k = 8.0;
     mu1 = 0.2;
     mu2 = 0.3;
@@ -16,15 +17,20 @@ function dydt = AlPan(y,Istim)
 
     h = param.h; 
     D = param.D; %diffusion coefficient (for monodomain equation)
-    
-    % SA
+
     V=squeeze(y(1,:,:));
     W=squeeze(y(2,:,:));
-    dV=4*D.*del2(V,h);
+    [gx,gy]=gradient(V,h);
+    [Dx,Dy]=gradient(D,h);
+    
+    % SA
+    dV=4*D.*del2(V,h)+Dx.*gx+Dy.*gy;
+
     dWdt=(epsi + mu1.*W./(mu2+V)).*(-W-k.*V.*(V-b-1));
     dVdt=(-k.*V.*(V-a).*(V-1)-W.*V)+dV+Istim;
     dydt(1,:,:)=dVdt;
     dydt(2,:,:)=dWdt;
+    
 
     % AV
     
@@ -56,9 +62,9 @@ for t=param.dt:param.dt:param.tend
 
     % stimulate at every BCL time interval for ncyc times
     if param.cross
-        if t<=param.stimdur
+        if mod(t, param.BCL) < param.stimdur
             Istim = Ia*param.stimgeo;
-        elseif t>=param.crosstime&&t<=(param.crosstime+param.stimdur)
+        elseif mod(t, param.BCL) >= param.crosstime && t < (param.crosstime+param.stimdur)
             Istim = Ia*param.crossgeo;
         else
             Istim = zeros((param.ncells) + 2,(param.ncells) + 2);
@@ -72,10 +78,10 @@ for t=param.dt:param.dt:param.tend
             Istim = zeros((param.ncells) + 2,(param.ncells) + 2);
         end
     end
-   
     % Runge-Kutta calculation of current V and W
     y(1,:,:)=V;
     y(2,:,:)=W;
+    
     k1=AlPan(y,Istim);
     k2=AlPan(y+param.dt/2.*k1,Istim);
     k3=AlPan(y+param.dt/2.*k2,Istim);
@@ -85,12 +91,12 @@ for t=param.dt:param.dt:param.tend
     W=squeeze(y(2,:,:));
 
     % rectangular boundary conditions: no flux of V
-    if  param.cross
-        V(1,:)=V(2,:);
-        V(end,:)=V(end-1,:);
-        V(:,1)=V(:,2);
-        V(:,end)=V(:,end-1);
-    end
+    %if  param.cross
+    V(1,:)=V(2,:);
+    V(end,:)=V(end-1,:);
+    V(:,1)=V(:,2);
+    V(:,end)=V(:,end-1);
+    %end
     
     % save V and W 
     if mod(ind,param.gathert)==0
@@ -134,6 +140,7 @@ for t=param.dt:param.dt:param.tend
             title('W (AU)')
             colorbar
             pause(0.01)
+            
         end    
     end
 end
