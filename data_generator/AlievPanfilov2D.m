@@ -5,7 +5,6 @@ function [Vsav,fullPath]=AlievPanfilov2D(param)
 % t is the time in AU - to scale do tms = t *12.9
 
 disp('Simulating...')
-disp(size(param.D))
 function dydt = AlPan(y,Istim)
     % Aliev-Panfilov model parameters 
     a = 0.01;
@@ -66,6 +65,7 @@ for t=param.dt:param.dt:param.tend
             Istim = Ia*param.stimgeo;
         elseif mod(t, param.BCL) >= param.crosstime && t < (param.crosstime+param.stimdur)
             Istim = Ia*param.crossgeo;
+            disp('cross stimulation applied!')
         else
             Istim = zeros((param.ncells) + 2,(param.ncells) + 2);
         end
@@ -91,12 +91,12 @@ for t=param.dt:param.dt:param.tend
     W=squeeze(y(2,:,:));
 
     % rectangular boundary conditions: no flux of V
-    %if  param.cross
+    % if  param.cross
     V(1,:)=V(2,:);
     V(end,:)=V(end-1,:);
     V(:,1)=V(:,2);
     V(:,end)=V(:,end-1);
-    %end
+    % end
     
     % save V and W 
     if mod(ind,param.gathert)==0

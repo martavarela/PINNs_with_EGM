@@ -65,7 +65,7 @@ for t=tini:tmax
         xlim([tini t+1])
         title(['Electrode at ', num2str(j),' (',num2str(round(param.elecpos(1,j))),',',num2str(round(param.elecpos(2,j))),')'])
     end
-    sgtitle('Overall Title for the Figure')
+    sgtitle('{\phi_e} Traces Measured from Electrodes')
 end
 
 elecpos = param.elecpos;

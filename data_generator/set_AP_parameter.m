@@ -13,7 +13,7 @@ param.displayt = round(1/param.dt);
 param.savet = 100*param.dt;
 
 param.BCL = 75;
-param.ncyc = 2;
+param.ncyc = 1;
 param.extra = 0;
 param.cyclic = 0;
 param.tend = (param.BCL*param.ncyc)+param.extra;
