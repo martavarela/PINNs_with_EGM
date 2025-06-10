@@ -12,7 +12,7 @@ class system_dynamics():
     def __init__(self):
         
         ## PDE Parameters
-        self.a = 0.05 #0.01
+        self.a = 0.01
         self.b = 0.15
         self.D = 0.1
         self.k = 8
@@ -76,25 +76,17 @@ class system_dynamics():
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         dtype = torch.float32
-        
-        # self.x_grid = torch.linspace(self.min_x, self.max_x, steps=int(self.max_x), device=device, dtype=dtype)
-        # self.y_grid = torch.linspace(self.min_y, self.max_y, steps=int(self.max_y/self.spacing), device=device, dtype=dtype)
-        # self.t_grid = torch.linspace(self.min_t, self.max_t, steps=int(self.max_t/self.t_spacing), device=device, dtype=dtype)
-        # self.V_grid = torch.zeros((len(self.x_grid), len(self.y_grid), len(self.t_grid)),
-        #                     device=device, dtype=dtype)
+
         self.x_grid = x.squeeze()
         self.y_grid = y.squeeze()
         self.t_grid = t.squeeze()
         self.V_grid = torch.zeros(Vsav.shape, dtype=torch.float32)
         print(f'Shape of V_grid:{self.V_grid.shape}')
-        # replacing with ground truth V
-        #Vsav_tensor = torch.tensor(Vsav, dtype=self.V_grid.dtype, device=self.V_grid.device)
-        #self.V_grid = Vsav_tensor
 
         self.mean_phie = torch.tensor(self.mean_phie,device=device,dtype=dtype)
         self.std_phie = torch.tensor(self.std_phie,device=device,dtype=dtype)
         
-        self.D_array = torch.full((int(self.max_x/self.spacing), int(self.max_y/self.spacing)), self.D, device=device, dtype=dtype)
+        #self.D_array = torch.full((int(self.max_x/self.spacing), int(self.max_y/self.spacing)), self.D, device=device, dtype=dtype)
         return np.hstack((X, Y, T)), V, W, phie_norm, np.array(observe_elec)
 
     def geometry_time(self, dim):
@@ -119,54 +111,15 @@ class system_dynamics():
         ## The tf.variables are initialized with a positive scalar, relatively close to their ground truth values
 
         if 'a' in args_param:
-            #self.a = tf.math.exp(tf.Variable(-3.92))
             self.a = dde.Variable(np.exp(-3.92))
-            #self.log_a = dde.Variable(-3.92)
             params.append(self.a)
         if 'b' in args_param:
-            #self.b = tf.math.exp(tf.Variable(-1.2))
-            self.b = dde.Variable(np.exp(-3.92))
+            self.b = dde.Variable(np.exp(-1.2))
             params.append(self.b)
         if 'd' in args_param:
-            #self.D = tf.math.exp(tf.Variable(-1.6))
             self.D = dde.Variable(np.exp(-1.6))
             params.append(self.D)
         return params
-
-    def pde_1D(self, x, y):
-        
-    
-        V, W = y[:, 0:1], y[:, 1:2]
-        dv_dt = dde.grad.jacobian(y, x, i=0, j=1)
-        dv_dxx = dde.grad.hessian(y, x, component=0, i=0, j=0)
-        dw_dt = dde.grad.jacobian(y, x, i=1, j=1)
-        ## Coupled PDE+ODE Equations
-        eq_a = dv_dt -  self.D*dv_dxx + self.k*V*(V-self.a)*(V-1) +W*V 
-        eq_b = dw_dt -  (self.epsilon + (self.mu_1*W)/(self.mu_2+V))*(-W -self.k*V*(V-self.b-1))
-        return [eq_a, eq_b]
-
-    def pde_1D_2cycle(self,x, y):
-    
-        V, W = y[:, 0:1], y[:, 1:2]
-        dv_dt = dde.grad.jacobian(y, x, i=0, j=1)
-        dv_dxx = dde.grad.hessian(y, x, component=0, i=0, j=0)
-        dw_dt = dde.grad.jacobian(y, x, i=1, j=1)
-    
-        x_space,t_space = x[:, 0:1],x[:, 1:2]
-        t_stim_1 = tf.equal(t_space, 0)
-        t_stim_2 = tf.equal(t_space, int(self.max_t/2))
-        x_stim = tf.less_equal(x_space, 5*self.spacing)
-    
-        first_cond_stim = tf.logical_and(t_stim_1, x_stim)
-        second_cond_stim = tf.logical_and(t_stim_2, x_stim)
-    
-        I_stim = tf.ones_like(x_space)*0.1
-        I_not_stim = tf.ones_like(x_space)*0
-        Istim = tf.where(tf.logical_or(first_cond_stim,second_cond_stim),I_stim,I_not_stim)
-        ## Coupled PDE+ODE Equations
-        eq_a = dv_dt -  self.D*dv_dxx + self.k*V*(V-self.a)*(V-1) +W*V -Istim
-        eq_b = dw_dt -  (self.epsilon + (self.mu_1*W)/(self.mu_2+V))*(-W -self.k*V*(V-self.b-1))
-        return [eq_a, eq_b]
     
     def pde_2D(self, x, y):
         V, W, phie = y[:, 0:1], y[:, 1:2], y[:,2:3]
@@ -176,13 +129,6 @@ class system_dynamics():
         t_idxs = torch.round(x[:, 2]).long().clamp(0, len(self.t_grid)-1)
         
         self.V_grid.data[x_idxs, y_idxs, t_idxs] = V.squeeze()
-        # updating V_grid slowly
-        #alpha = 0.1
-        # self.V_grid[x_idxs, y_idxs, t_idxs] = (
-        #     (1 - alpha) * self.V_grid[x_idxs, y_idxs, t_idxs] + alpha * V.squeeze()
-        # )
-        self.mask = (self.V_grid != 0).float()
-        #self.fill_missing_V()
 
         ## Aliev-Panfilov PDE
         dv_dt = dde.grad.jacobian(y, x, i=0, j=2)
@@ -191,56 +137,14 @@ class system_dynamics():
         dw_dt = dde.grad.jacobian(y, x, i=1, j=2)
 
         ## Coupled PDE+ODE Equations
-        eq_a = dv_dt -  self.D*(dv_dxx + dv_dyy) + self.k*V*(V-self.a)*(V-1) +W*V 
+        eq_a = dv_dt -  self.D*(dv_dxx + dv_dyy) + self.k*V*(V-self.a)*(V-1) +W*V
         eq_b = dw_dt -  (self.epsilon + (self.mu_1*W)/(self.mu_2+V))*(-W -self.k*V*(V-self.b-1))
-
-        # output minus integration of V after update and normalisation
-        self.V_grid = self.fill_V_grid_with_interp(self.V_grid,self.mask)
         
         phie_pred = self.compute_phie(self.V_grid,x)
         phie_pred = (phie_pred - self.mean_phie) / (self.std_phie + 1e-8)
         eq_c = phie-phie_pred 
-        return [eq_a, eq_b, eq_c]
-
-    def pde_2D_heter(self, x, y):
+        return [eq_a, eq_b, eq_c] 
     
-        V, W, var = y[:, 0:1], y[:, 1:2], y[:, 2:3]
-        dv_dt = dde.grad.jacobian(y, x, i=0, j=2)
-        dv_dxx = dde.grad.hessian(y, x, component=0, i=0, j=0)
-        dv_dyy = dde.grad.hessian(y, x, component=0, i=1, j=1)
-        dw_dt = dde.grad.jacobian(y, x, i=1, j=2)
-        dv_dx = dde.grad.jacobian(y, x, i=0, j=0)
-        dv_dy = dde.grad.jacobian(y, x, i=0, j=1)
-        
-        ## Heterogeneity
-        D_heter = tf.math.sigmoid(var)*0.08+0.02
-        dD_dx = dde.grad.jacobian(D_heter, x, i=0, j=0)
-        dD_dy = dde.grad.jacobian(D_heter, x, i=0, j=1)
-        
-        ## Coupled PDE+ODE Equations
-        eq_a = dv_dt -  D_heter*(dv_dxx + dv_dyy) -dD_dx*dv_dx -dD_dy*dv_dy + self.k*V*(V-self.a)*(V-1) +W*V 
-        eq_b = dw_dt -  (self.epsilon + (self.mu_1*W)/(self.mu_2+V))*(-W -self.k*V*(V-self.b-1))
-        return [eq_a, eq_b]
- 
-    def pde_2D_heter_forward(self, x, y):
-                
-        V, W, D = y[:, 0:1], y[:, 1:2], y[:, 2:3]
-        dv_dt = dde.grad.jacobian(y, x, i=0, j=2)
-        dv_dxx = dde.grad.hessian(y, x, component=0, i=0, j=0)
-        dv_dyy = dde.grad.hessian(y, x, component=0, i=1, j=1)
-        dw_dt = dde.grad.jacobian(y, x, i=1, j=2)
-        dv_dx = dde.grad.jacobian(y, x, i=0, j=0)
-        dv_dy = dde.grad.jacobian(y, x, i=0, j=1)
-        
-        ## Heterogeneity
-        dD_dx = dde.grad.jacobian(D, x, i=0, j=0)
-        dD_dy = dde.grad.jacobian(D, x, i=0, j=1)
-        
-        ## Coupled PDE+ODE Equations
-        eq_a = dv_dt -  D*(dv_dxx + dv_dyy) -dD_dx*dv_dx -dD_dy*dv_dy + self.k*V*(V-self.a)*(V-1) +W*V 
-        eq_b = dw_dt -  (self.epsilon + (self.mu_1*W)/(self.mu_2+V))*(-W -self.k*V*(V-self.b-1))
-        return [eq_a, eq_b]   
- 
     def IC_func(self,observe_train, v_train):
         
         T_ic = observe_train[:,-1].reshape(-1,1)
@@ -250,40 +154,15 @@ class system_dynamics():
         return dde.PointSetBC(observe_init,v_init,component=0)
     
     def BC_func(self,dim, geomtime):
-        if dim == 1:
-            bc = dde.NeumannBC(geomtime, lambda x:  np.zeros((len(x), 1)), lambda _, on_boundary: on_boundary, component=0)
-        elif dim == 2:
-            bc = dde.NeumannBC(geomtime, lambda x:  np.zeros((len(x), 1)), self.boundary_func_2d, component=0)
+        bc = dde.NeumannBC(geomtime, lambda x:  np.zeros((len(x), 1)), self.boundary_func_2d, component=0)
         return bc
     
     def boundary_func_2d(self,x, on_boundary):
             return on_boundary and ~(x[0:2]==[self.min_x,self.min_y]).all() and  ~(x[0:2]==[self.min_x,self.max_y]).all() and ~(x[0:2]==[self.max_x,self.min_y]).all()  and  ~(x[0:2]==[self.max_x,self.max_y]).all() 
    
-    def modify_inv_heter(self, x, y):                
-        domain_space = x[:,0:2]
-        D = tf.layers.dense(tf.layers.dense(tf.layers.dense(tf.layers.dense(tf.layers.dense(tf.layers.dense(domain_space, 60,
-                            tf.nn.tanh), 60, tf.nn.tanh), 60, tf.nn.tanh), 60, tf.nn.tanh), 60, tf.nn.tanh), 1, activation=None)        
-        return tf.concat((y[:,0:2],D), axis=1)    
-    
-    def modify_heter(self, x, y):
-        
-        x_space, y_space = x[:, 0:1], x[:, 1:2]
-        
-        x_upper = tf.less_equal(x_space, 54*0.1)
-        x_lower = tf.greater(x_space,32*0.1)
-        cond_1 = tf.logical_and(x_upper, x_lower)
-        
-        y_upper = tf.less_equal(y_space, 54*0.1)
-        y_lower = tf.greater(y_space,32*0.1)
-        cond_2 = tf.logical_and(y_upper, y_lower)
-        
-        D0 = tf.ones_like(x_space)*0.02 
-        D1 = tf.ones_like(x_space)*0.1
-        D = tf.where(tf.logical_and(cond_1, cond_2),D0,D1)
-        return tf.concat((y[:,0:2],D), axis=1)  
 
     def del2_torch(self,V,h):
-        """Approximate Laplacian using 5-point stencil."""
+        # Approximate Laplacian with 5-point stencil
 
         # Pad with Neumann boundary conditions (replicate)
         #V_pad = torch.nn.functional.pad(V.unsqueeze(0).unsqueeze(0), (1,1,1,1), mode='reflect')
@@ -319,11 +198,15 @@ class system_dynamics():
         # Expand scalar D if necessary
         if isinstance(D, (float, int)):
             D = torch.full((X, Y), D, device=device)
-        elif D.shape == (X+2, Y+2):
+        elif hasattr(D, 'tensor'):
+            D = torch.full((X, Y), D.tensor.item(), device=device)
+        elif isinstance(D, torch.Tensor) and D.shape == (X+2, Y+2):
             D = D[1:-1, 1:-1]
 
         h = self.spacing
-        Dy, Dx = torch.gradient(D, spacing=(h, h), dim=(0, 1))
+        # only homogenous
+        Dx = Dy = torch.zeros_like(Vsav[:,:,0])
+
 
         # Get time indices (convert to 0-based if needed)
         t_indices = observations[:, 2].long() - 1  # Assuming t starts at 1

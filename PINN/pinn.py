@@ -69,9 +69,6 @@ class PINN():
     
     
     def train(self, out_path, params):
-        print('---------Stabilising-----------')
-        ## Stabalize initialization process by capping the losses
-        #self.stable_init()
         ## Train PINN with corresponding scheme
         torch.cuda.empty_cache()
         print('---------Training-----------')
@@ -99,6 +96,7 @@ class PINN():
             #main_weights = 1/np.log(loss_train+epsilon+1)
             main_weights = np.clip(main_weights,0.001,10)
             main_weights /= np.sum(main_weights)
+            print(f"Adaptive weights:{main_weights}")
             # continue training
             self.model.compile("adam",lr=self.lr,external_trainable_variables=params,loss_weights=main_weights)
             losshistory, train_state = self.model.train(epochs=self.epochs_main, model_save_path = out_path, callbacks=[variable],display_every=100,batch_size = self.batch_size)
