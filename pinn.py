@@ -91,7 +91,7 @@ class PINN():
             ## Main phase
             main_weights = [1,1,1,1,1,1,1]
             # Warm-up for loss to stabilise
-            self.model.compile("adam",lr=self.lr,external_trainable_variables=params)
+            self.model.compile("adam",lr=self.lr,external_trainable_variables=params,loss_weights=main_weights)
             losshistory, train_state = self.model.train(epochs=500, model_save_path = out_path, callbacks=[variable],display_every=100,batch_size = self.batch_size)
             loss_train = np.array(train_state.loss_train)
             epsilon = 1e-8
@@ -100,7 +100,7 @@ class PINN():
             main_weights = np.clip(main_weights,0.001,10)
             main_weights /= np.sum(main_weights)
             # continue training
-            self.model.compile("adam",lr=self.lr,external_trainable_variables=params)
+            self.model.compile("adam",lr=self.lr,external_trainable_variables=params,loss_weights=main_weights)
             losshistory, train_state = self.model.train(epochs=self.epochs_main, model_save_path = out_path, callbacks=[variable],display_every=100,batch_size = self.batch_size)
             # ## Final phase
             #self.model.compile("L-BFGS-B",external_trainable_variables=params)
