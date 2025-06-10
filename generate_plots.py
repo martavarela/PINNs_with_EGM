@@ -2,14 +2,14 @@ from matplotlib import pyplot as plt
 import numpy as np
 from scipy import interpolate
 
-def plot_phie(phie_pred,true_phie,filename):
+def plot_phie(dynamics,phie_pred,true_phie,filename):
     #true_phie = np.reshape()
     plt.figure(figsize=(15, 10))
     for i in range(9):
         plt.subplot(3, 3, i+1)
         plt.plot(phie_pred[i], label="Predicted", linestyle="--")
         plt.plot(true_phie[i, :], label="True", alpha=0.7)
-        plt.title(f"Signal {i+1}")
+        plt.title(f"Signal {dynamics.elecpos[i,:]}")
         #plt.xlabel("Time Steps")
         plt.ylabel("φₑ")
         plt.grid(True)
