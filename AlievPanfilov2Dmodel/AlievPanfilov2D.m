@@ -35,7 +35,7 @@ ncells = param.ncells;
 iscyclic=param.cyclic; % 1 for spiral, connecting the ends
 flagmovie=1; % to write a movie of the electrical potential propagation%100;
 
-[sel,col] = chooseEGMs(param);
+% [sel,col] = chooseEGMs(param);
 
 
 % stimulation
